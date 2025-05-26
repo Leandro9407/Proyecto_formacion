@@ -23,12 +23,14 @@ def create_access_token(data: dict):
     return encoded_jwt
 
 # Función para verificar si un token JWT es valido
-async def verify_token(token: str):
+def verify_token(token: str):
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
         user_id = payload.get("sub")
         return int(user_id) if user_id is not None else None
     except jwt.ExpiredSignatureError: # Token ha expirado
+        print("Token expirado")
         return None
-    except JWTError:
+    except JWTError as e:
+        print("Error al decodificar el token:", str(e))
         return None

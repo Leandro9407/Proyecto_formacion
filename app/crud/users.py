@@ -94,3 +94,17 @@ def modify_status_user(db: Session, user_id: int):
         db.rollback()
         logger.error(f"Error al modificar el estado del usuario: {e}")
           
+
+def get_users_by_centro(db: Session, cod_centro: int):
+    try:
+        query = text("""
+            SELECT id_usuario, nombre_completo, identificacion, id_rol,
+                   correo, tipo_contrato, telefono, estado, cod_centro
+            FROM usuario
+            WHERE cod_centro = :cod_centro
+        """)
+        result = db.execute(query, {"cod_centro": cod_centro}).mappings().all()
+        return result
+    except SQLAlchemyError as e:
+        logger.error(f"Error al obtener usuarios por cod_centro: {e}")
+        raise Exception("Error de base de datos al obtener los usuarios")

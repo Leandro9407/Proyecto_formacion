@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends,HTTPException
 from sqlalchemy.orm import Session
-from app.api.dependencies import authenticate_user
+from core.dependencies import authenticate_user
 from app.schemas.auth import Responseloggin
 from core.security import create_access_token
 from core.database import get_db
@@ -23,7 +23,7 @@ def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(
-        data={"sub": user.id_usuario, "rol":user.id_rol}
+        data={"sub": str(user.id_usuario), "rol":user.id_rol}
     )
 
     return Responseloggin(

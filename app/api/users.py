@@ -1,7 +1,7 @@
-from typing import Annotated
+from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api.dependencies import get_current_user
+from core.dependencies import get_current_user
 from core.database import get_db
 from app.schemas.users import UserCreate, UserOut, UserUpdate
 from app.crud import users as crud_users
@@ -12,9 +12,15 @@ router = APIRouter()
 @router.post("/create", status_code=status.HTTP_201_CREATED)
 def create_user(
     user: UserCreate,
-    current_user: Annotated[UserOut, Depends(get_current_user)],
-    db: Session = Depends(get_db)):
-    
+    db: Session = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user) #autorizacion (candadito)
+):   
+    if current_user.id_rol == 2:
+        if user.id_rol == 1 or user.id_rol == 2:
+             raise HTTPException(status_code=401, detail="Usuario no autorizado")
+
+    if current_user.id_rol == 3:
+        raise HTTPException(status_code=401, detail="Usuario no autorizado")  
     try:
         user_validate = crud_users.get_user_by_email(db, user.correo)
         if user_validate:
@@ -47,7 +53,20 @@ def get_user_by_id(id_usuario: int, db: Session = Depends(get_db)):
         
 
 @router.put("/update/{user_id}")
-def update_user(user_id: int, user: UserUpdate, db: Session = Depends(get_db)):
+def update_user(
+    user_id: int,
+    user: UserUpdate, 
+    db: Session = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user)
+):  
+    if current_user.id_rol != 1:
+        if current_user.id_usuario != user_id:
+            if current_user.id_rol == 3:
+                raise HTTPException(status_code=401, detail="Usuario no autorizado")
+            if current_user.id_rol == 2:
+                user_update = crud_users.get_user_by_id(db, user_id)
+                if user_update.id_rol != 3:
+                    raise HTTPException(status_code=401, detail="Usuario no autorizado")
     try:
         if user.correo is not None:
             user_validate = crud_users.get_user_by_email(db, user.correo)
@@ -72,5 +91,24 @@ def modify_status_user(user_id: int, db: Session = Depends(get_db)):
         crud_users.modify_status_user(db, user_id)
 
         return {"message": "Usuario actualizado correctamente"}
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+
+@router.get("/get-by-centro", response_model=List[UserOut])
+def get_users_by_centro(
+    cod_centro: int, 
+    db: Session = Depends(get_db),
+    current_user: UserOut = Depends(get_current_user)
+):  
+    if current_user.id_rol != 1:
+        if current_user.id_rol != 2:
+            raise HTTPException(status_code=401, detail="Usuario no autorizado")
+
+    try:
+        users = crud_users.get_users_by_centro(db, cod_centro)
+        if not users:
+            raise HTTPException(status_code=404, detail="No se encontraron usuarios para este centro")
+        return users
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))

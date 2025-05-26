@@ -24,6 +24,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = os.getenv("JWT_ALGORITHM", "HS256")
     jwt_access_token_expire_minutes: int = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
+    # Validaciones
+    CREATE_USER_ADMIN_ADMIN: bool = os.getenv("CREATE_USER_ADMIN_ADMIN")
+    CREATE_USER_ADMIN_INSTRU: bool = os.getenv("CREATE_USER_ADMIN_INSTRU")
+    CREATE_USER_INSTRU: bool = os.getenv("CREATE_USER_INSTRU")
+   
+
     class Config:
         env_file = ".env"
 

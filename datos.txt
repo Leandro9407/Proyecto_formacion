@@ -52,21 +52,15 @@ Gestion_Formacion/
 
 
 ### 1.3. Instalar dependencias
-pip: gestor de paquetes
 
-                uviconr: servidor de fastapi
 pip install fastapi uvicorn
 
-            pydantic: validador de datos
 pip install pydantic-settings
-            
-            sqlalchemy: libreria ORM (comunicar al lenguaje con la base de datos)
+
 pip install sqlalchemy
 
-            pymysql: libreria que usa sqlalchemy y fabrica la url
 pip install pymysql
 
-            pydantic[email]: velidar email
 pip install pydantic[email]
 
 
@@ -279,7 +273,6 @@ CREATE TABLE programacion(
     FOREIGN KEY(id_user) REFERENCES usuario(id_usuario)
 );
 
-
 DELETE FROM regional;
 INSERT INTO regional (cod_regional, nombre) 
 VALUES (66, 'REGIONAL RISARALDA');
@@ -454,8 +447,9 @@ def read_root():
 
 ## 7. Seguridad y JWT
 
-pip install passlib[bcrypt] python-jose[cryptography]
+pip install passlib[bcrypt]
 
+pip install python-jose[cryptography]
 
 ### 7.1. Implementar funciones de seguridad (/core/security.py)
 
@@ -564,11 +558,164 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(
-        data={"sub": user.user_id, "rol":user.user_role}
+        data={"sub": str(user.user_id), "rol":user.user_role}
     )
 
     return ResponseLoggin(
         user=user,
         access_token=access_token
     )
+
+
+## corregir str(user.user_id)
+
+## Crear clave secreta
+## openssl rand -hex 32
+
+## Si hay errores de inconpatibilidad bcrypt Instalar 
+## pip install bcrypt==3.2.0 passlib==1.7.4 --force-reinstall
+
+###  modificar 
+
+(core/security.py)
+# Función para verificar si un token JWT es valido
+def verify_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        user_id = payload.get("sub")
+        return int(user_id) if user_id is not None else None
+    except jwt.ExpiredSignatureError: # Token ha expirado
+        print("Token expirado")
+        return None
+    except JWTError as e:
+        print("Error al decodificar el token:", str(e))
+        return None
+
+
+
+## datos ejemplo
+
+{
+  "nombre_completo": "Sofia Luna",
+  "identificacion": "10938340452",
+  "id_rol": 2,
+  "correo": "sofia@gmail.com",
+  "tipo_contrato": "Planta",
+  "telefono": "31238349384",
+  "estado": true,
+  "cod_centro": 9121,
+  "pass_hash": "12345678"
+}
+
+{
+  "nombre_completo": "Alejandro Orozco",
+  "identificacion": "10883437283",
+  "id_rol": 3,
+  "correo": "alejo@gmail.com",
+  "tipo_contrato": "Contratista",
+  "telefono": "31373643380",
+  "estado": true,
+  "cod_centro": 9121,
+  "pass_hash": "12345678"
+}
+
+{
+  "nombre_completo": "Maria Veles",
+  "identificacion": "1088765239",
+  "id_rol": 1,
+  "correo": "maria@gmail.com",
+  "tipo_contrato": "Planta",
+  "telefono": "31183483947",
+  "estado": true,
+  "cod_centro": 9121,
+  "pass_hash": "12345678"
+}
+
+
+## 10. Proteger los endpoints 
+
+# modificar api/user
+
+
+@router.post("/create", status_code=status.HTTP_201_CREATED)
+def create_user(
+    user: UserCreate,
+    db: Session = Depends(get_db),
+    user_token: UserOut = Depends(get_current_user)
+):
+    """
+        Debes usar id_rol que exista por ahora tenemos 1 superadmin, 2 admin y 3 instructor
+    """
+    print("id de rol ", user_token.id_rol, " su tipo ", type(user_token.id_rol))
+    
+    if user_token.id_rol == 2:
+        if user.id_rol == 1 or user.id_rol == 2:
+            raise HTTPException(status_code=401, detail="Usuario no autorizado")
+
+    if user_token.id_rol == 3:
+        raise HTTPException(status_code=401, detail="Usuario no autorizado")
+    
+    try:
+        user_validate = crud_users.get_user_by_email(db, user.correo)
+        if user_validate:
+            raise HTTPException(status_code=400, detail="Correo ya registrado")
+        
+        crud_users.create_user(db, user)
+        return {"message": "Usuario creado correctamente"}
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+## obtener todos los usuarios de un centro
+
+(api/users.py)
+@router.get("/get-by-centro", response_model=List[UserOut])
+def get_users_by_centro(cod_centro: int, db: Session = Depends(get_db)):
+    try:
+        users = crud_users.get_users_by_centro(db, cod_centro)
+        if not users:
+            raise HTTPException(status_code=404, detail="No se encontraron usuarios para este centro")
+        return users
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+(crud/users.py)
+def get_users_by_centro(db: Session, cod_centro: int):
+    try:
+        query = text("""
+            SELECT id_usuario, nombre_completo, identificacion, id_rol,
+                   correo, tipo_contrato, telefono, estado, cod_centro
+            FROM usuario
+            WHERE cod_centro = :cod_centro
+        """)
+        result = db.execute(query, {"cod_centro": cod_centro}).mappings().all()
+        return result
+    except SQLAlchemyError as e:
+        logger.error(f"Error al obtener usuarios por cod_centro: {e}")
+        raise Exception("Error de base de datos al obtener los usuarios")
+
+
+
+
+## Ejercicio
+
+## Crear la siguiente tabla en Base de datos y realizar las siguientes 
+## funcionalidades en fastapi todas aseguradas con token.
+
+# crear ambiente_formacion (solo superadmin y admin)
+# modificar ambiente_formacion (solo superadmin y admin)
+# obtener por id ambiente_formacion
+# obtener los ambientes activos por centro de formación
+# modificar el estado de un ambiente de formación (solo superadmin y admin)
+
+CREATE TABLE ambiente_formacion(
+    id_ambiente INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nombre_ambiente VARCHAR(40),
+    num_max_aprendices TINYINT UNSIGNED,
+    municipio VARCHAR(40),
+    ubicacion VARCHAR(80),
+    cod_centro INT UNSIGNED,
+    estado BOOLEAN, -- True Activo   False Inactivo
+    FOREIGN KEY(cod_centro) REFERENCES centro_formacion(cod_centro)
+);
 
