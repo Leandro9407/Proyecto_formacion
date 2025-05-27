@@ -8,7 +8,7 @@ from app.schemas.ambient import AmbientCreate
 
 logger = logging.getLogger(__name__)
 
-def create_user(db: Session, Ambient: AmbientCreate) -> Optional[bool]:
+def Create_ambient(db: Session, Ambient: AmbientCreate) -> Optional[bool]:
     try:
         query = text("""
             INSERT INTO ambiente_formacion (
@@ -61,3 +61,33 @@ def get_ambient_by_id(db: Session, id_ambient: int):
     except SQLAlchemyError as e:
         logger.error(f"Error al obtener ambiente por ID: {e}")
         raise Exception("Error de base de datos al obtener el ambiente")
+
+def get_ambientes_activos_por_centro(db: Session, cod_centro: int):
+    try:
+        query = text("""
+            SELECT id_ambiente, nombre_ambiente, num_max_aprendices, municipio,
+                   ubicacion, cod_centro, estado
+            FROM ambiente_formacion
+            WHERE cod_centro = :cod_centro AND estado = TRUE
+        """)
+        result = db.execute(query, {"cod_centro": cod_centro}).mappings().all()
+        return result
+    except SQLAlchemyError as e:
+        logger.error(f"Error al obtener ambientes activos por centro: {e}")
+        raise Exception("Error de base de datos al obtener los ambientes activos")
+
+
+def modificar_estado_ambiente(db: Session, id_ambiente: int):
+    try:
+        query = text("""
+            UPDATE ambiente_formacion SET estado = IF(estado, FALSE, TRUE)
+            WHERE id_ambiente = :id_ambiente
+        """)
+        db.execute(query, {"id_ambiente": id_ambiente})
+        db.commit()
+        return True
+    except SQLAlchemyError as e:
+        db.rollback()
+        logger.error(f"Error al modificar el estado del ambiente: {e}")
+        raise Exception("Error de base de datos al modificar el estado del ambiente")
+
