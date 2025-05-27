@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from core.dependencies import get_current_user
 from core.database import get_db
-from app.schemas.ambient import AmbientCreate, AmbienteUpdate, AmbienteOut
+from app.schemas.ambient import AmbienteCreate, AmbienteUpdate, AmbienteOut
 from app.crud import ambient as crud_ambient
 from app.schemas.users import UserCreate, UserOut
 from sqlalchemy.exc import SQLAlchemyError
@@ -35,14 +35,14 @@ def create_user(
 
 @router.post("/create", status_code=status.HTTP_201_CREATED)
 def create_ambiente(
-    ambiente: AmbientCreate,
+    ambiente: AmbienteCreate,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user)
 ):
     if current_user.id_rol not in [1, 2]:
         raise HTTPException(status_code=401, detail="Usuario no autorizado")
     try:
-        crud_ambient.Create_ambient(db, ambiente)
+        crud_ambient.create_ambient(db, ambiente)
         return {"message": "Ambiente creado correctamente"}
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))
