@@ -32,7 +32,7 @@ CREATE TABLE `metas` (
 CREATE TABLE `programa_formacion` (
   `cod_programa` int unsigned NOT NULL,
   `la_version` tinyint unsigned NOT NULL,
-  `nombre` varchar(30) DEFAULT NULL,
+  `nombre` varchar(140) DEFAULT NULL,
   `horas_lectivas` int DEFAULT NULL,
   `horas_productivas` int DEFAULT NULL,
   PRIMARY KEY (`cod_programa`,`la_version`)
