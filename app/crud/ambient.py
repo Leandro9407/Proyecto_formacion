@@ -3,12 +3,11 @@ from typing import Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-
-from app.schemas.ambient import AmbienteCreate, AmbienteUpdate
+from app.schemas.ambient import AmbientCreate, AmbientUpdate
 
 logger = logging.getLogger(__name__)
 
-def create_ambient(db: Session, ambient: AmbienteCreate) -> Optional[bool]:
+def create_ambient(db: Session, ambient: AmbientCreate) -> Optional[bool]:
     try:
         query = text("""
             INSERT INTO ambiente_formacion (
@@ -41,7 +40,7 @@ def get_ambient_by_id(db: Session, id_ambiente: int):
         logger.error(f"Error al obtener ambiente por id: {e}")
         raise Exception("Error de base de datos al obtener el ambiente")
 
-def update_ambient(db: Session, id_ambiente: int, ambient_update: AmbienteUpdate) -> bool:
+def update_ambient(db: Session, id_ambiente: int, ambient_update: AmbientUpdate) -> bool:
     try:
         fields = ambient_update.model_dump(exclude_unset=True)
         if not fields:
@@ -57,7 +56,7 @@ def update_ambient(db: Session, id_ambiente: int, ambient_update: AmbienteUpdate
         logger.error(f"Error al actualizar ambiente: {e}")
         raise Exception("Error de base de datos al actualizar el ambiente")
 
-def get_ambientes_activos_por_centro(db: Session, cod_centro: int):
+def get_ambient_by_centro(db: Session, cod_centro: int):
     try:
         query = text("""
             SELECT id_ambiente, nombre_ambiente, num_max_aprendices, municipio,
@@ -71,7 +70,7 @@ def get_ambientes_activos_por_centro(db: Session, cod_centro: int):
         logger.error(f"Error al obtener ambientes activos por centro: {e}")
         raise Exception("Error de base de datos al obtener los ambientes activos")
 
-def modificar_estado_ambiente(db: Session, id_ambiente: int):
+def modify_status_ambient(db: Session, id_ambiente: int):
     try:
         query = text("""
             UPDATE ambiente_formacion SET estado = IF(estado, FALSE, TRUE)

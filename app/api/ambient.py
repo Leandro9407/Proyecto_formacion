@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from core.dependencies import get_current_user
 from core.database import get_db
-from app.schemas.ambient import AmbienteCreate, AmbienteUpdate, AmbienteOut
+from app.schemas.ambient import AmbientCreate, AmbientUpdate, AmbientOut
 from app.crud import ambient as crud_ambient
 from app.schemas.users import UserCreate, UserOut
 from sqlalchemy.exc import SQLAlchemyError
@@ -34,8 +34,8 @@ def create_user(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/create", status_code=status.HTTP_201_CREATED)
-def create_ambiente(
-    ambiente: AmbienteCreate,
+def create_ambient(
+    ambiente: AmbientCreate,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user)
 ):
@@ -48,9 +48,9 @@ def create_ambiente(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/update/{id_ambiente}")
-def update_ambiente(
+def update_ambient(
     id_ambiente: int,
-    ambiente: AmbienteUpdate,
+    ambiente: AmbientUpdate,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user)
 ):
@@ -64,8 +64,8 @@ def update_ambiente(
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/get-by-id/{id_ambiente}", response_model=AmbienteOut)
-def get_ambiente_by_id(
+@router.get("/get-by-id/{id_ambiente}", response_model=AmbientOut)
+def get_ambient_by_id(
     id_ambiente: int,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user)
@@ -78,22 +78,22 @@ def get_ambiente_by_id(
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/activos-por-centro", response_model=List[AmbienteOut])
-def get_ambientes_activos_por_centro(
+@router.get("/status-activate-by-centro", response_model=List[AmbientOut])
+def get_ambient_by_centro(
     cod_centro: int,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user)
 ):
     try:
-        ambientes = crud_ambient.get_ambientes_activos_por_centro(db, cod_centro)
+        ambientes = crud_ambient.get_ambient_by_centro(db, cod_centro)
         if not ambientes:
             raise HTTPException(status_code=404, detail="No se encontraron ambientes activos para este centro")
         return ambientes
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/modificar-estado/{id_ambiente}")
-def modificar_estado_ambiente(
+@router.put("/modify-status/{id_ambiente}")
+def modify_status_ambient(
     id_ambiente: int,
     db: Session = Depends(get_db),
     current_user: UserOut = Depends(get_current_user)
@@ -101,7 +101,7 @@ def modificar_estado_ambiente(
     if current_user.id_rol not in [1, 2]:
         raise HTTPException(status_code=401, detail="Usuario no autorizado")
     try:
-        crud_ambient.modificar_estado_ambiente(db, id_ambiente)
+        crud_ambient.modify_status_ambient(db, id_ambiente)
         return {"message": "Estado del ambiente modificado correctamente"}
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail=str(e))
